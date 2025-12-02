@@ -1,0 +1,12 @@
+[project]
+name = "python-pet-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.121.3",
+    "google-genai>=1.47.0",
+    "sqlalchemy>=2.0.44",
+    "uvicorn>=0.38.0",
+]

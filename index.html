@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Bridge — Gemini клиент</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Manrope:wght@500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060910;
+      --panel: rgba(18, 22, 35, 0.9);
+      --accent: #2fe0a2;
+      --accent-2: #4fd1ff;
+      --text: #e6ecf3;
+      --muted: #8c99ac;
+      --border: rgba(255, 255, 255, 0.08);
+      --glow: #2fe0a233;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Space Grotesk', 'Manrope', 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at 10% 20%, #13203d 0, transparent 25%),
+        radial-gradient(circle at 90% 10%, #12321f 0, transparent 25%),
+        radial-gradient(circle at 80% 80%, #1a2238 0, transparent 25%),
+        var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 32px 18px 48px;
+      overflow-x: hidden;
+    }
+
+    .glow-blob {
+      position: fixed;
+      width: 520px;
+      height: 520px;
+      background: radial-gradient(circle, var(--accent) 0%, transparent 60%);
+      opacity: 0.12;
+      filter: blur(72px);
+      z-index: 0;
+      top: -120px;
+      right: -180px;
+      animation: float 14s ease-in-out infinite alternate;
+    }
+
+    .glow-blob:nth-child(2) {
+      background: radial-gradient(circle, var(--accent-2) 0%, transparent 60%);
+      top: 60%;
+      left: -200px;
+      animation-duration: 16s;
+    }
+
+    @keyframes float {
+      to {
+        transform: translate(24px, -18px) scale(1.05);
+      }
+    }
+
+    .page {
+      position: relative;
+      width: min(1200px, 100%);
+      z-index: 1;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0e8761, #44ffc5);
+      display: grid;
+      place-items: center;
+      color: #06130f;
+      font-weight: 700;
+      letter-spacing: 1px;
+      box-shadow: 0 10px 40px rgba(47, 224, 162, 0.25);
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(28px, 3vw, 34px);
+      letter-spacing: -0.02em;
+    }
+
+    .title span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chip {
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 14px;
+    }
+
+    .chip strong {
+      color: var(--text);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--glow);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .panel .subtext {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+      resize: vertical;
+      transition: border 0.2s ease, transform 0.2s ease;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 6px rgba(47, 224, 162, 0.08);
+    }
+
+    .controls {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hints {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #20bc86, #2fe0a2);
+      color: #04100c;
+      box-shadow: 0 12px 36px rgba(47, 224, 162, 0.28);
+      min-width: 140px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .answer {
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      min-height: 120px;
+      line-height: 1.6;
+      color: var(--text);
+      position: relative;
+    }
+
+    .answer.loading::after {
+      content: "Генерируем ответ…";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      animation: shimmer 1.3s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: -200px 0;
+      }
+
+      100% {
+        background-position: 200px 0;
+      }
+    }
+
+    .history {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .history::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .history::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .card .label {
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .card .prompt {
+      color: var(--text);
+      margin: 0 0 6px;
+    }
+
+    .card .response {
+      color: var(--muted);
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 20px 10px;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(47, 224, 162, 0.12);
+      color: #a0f4d8;
+      border: 1px solid rgba(47, 224, 162, 0.3);
+      font-size: 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    @media (max-width: 960px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      body {
+        padding-top: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="glow-blob"></div>
+  <div class="glow-blob"></div>
+  <div class="page">
+    <header class="header">
+      <div class="brand">
+        <div class="logo">AI</div>
+        <div class="title">
+          <h1>AI Bridge</h1>
+          <span>Frontend → FastAPI → Gemini</span>
+        </div>
+      </div>
+      <div class="status">
+        <div class="chip">API: <strong>http://localhost:8000</strong></div>
+        <div class="chip">Frontend: <strong>http://localhost:5500</strong></div>
+        <div class="badge" id="connBadge"><span class="status-dot"></span><span>Статус API</span></div>
+        <button class="btn-ghost" id="pingBtn">Проверить</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Задайте вопрос</h2>
+        <p class="subtext">Отправьте промпт в API, ответ сразу появится ниже. Ctrl/⌘ + Enter тоже работает.</p>
+        <textarea id="promptInput"
+          placeholder="Например: придумай стратегию запуска pet‑проекта с бюджетом 100$"></textarea>
+        <div class="controls">
+          <div class="hints">
+            <span class="muted">Сокращения: </span>
+            <span class="badge">Ctrl/⌘ + Enter — отправить</span>
+            <span class="badge">История — справа</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-ghost" id="clearBtn">Очистить</button>
+            <button type="button" class="btn-primary" id="sendBtn">Отправить в нейросеть</button>
+          </div>
+        </div>
+        <div class="answer" id="answerBox">Ответ появится здесь.</div>
+      </section>
+
+      <aside class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+          <div>
+            <h2 style="margin:0;">История по вашему IP</h2>
+            <p class="subtext">Данные из эндпоинта <code>/requests</code>.</p>
+          </div>
+          <button class="btn-ghost" id="refreshBtn">Обновить</button>
+        </div>
+        <div class="history" id="history"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const promptInput = document.getElementById('promptInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const answerBox = document.getElementById('answerBox');
+    const historyEl = document.getElementById('history');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const connBadge = document.getElementById('connBadge');
+    const pingBtn = document.getElementById('pingBtn');
+    const API_URL = 'http://localhost:8000/requests';
+
+    const setLoading = (isLoading) => {
+      sendBtn.disabled = isLoading;
+      sendBtn.style.opacity = isLoading ? 0.65 : 1;
+      answerBox.classList.toggle('loading', isLoading);
+    };
+
+    const updateStatus = (ok) => {
+      const dot = connBadge.querySelector('.status-dot');
+      connBadge.style.borderColor = ok ? 'rgba(47, 224, 162, 0.4)' : 'rgba(255, 86, 86, 0.4)';
+      connBadge.style.background = ok ? 'rgba(47, 224, 162, 0.12)' : 'rgba(255, 86, 86, 0.10)';
+      connBadge.querySelector('span:last-child').textContent = ok ? 'API доступен' : 'API недоступен';
+      dot.style.background = ok ? 'var(--accent)' : '#ff5656';
+      dot.style.boxShadow = ok ? '0 0 12px var(--glow)' : '0 0 12px rgba(255,86,86,0.4)';
+      connBadge.dataset.ok = ok ? '1' : '0';
+    };
+
+    const renderHistory = (items) => {
+      historyEl.innerHTML = '';
+      if (!items || !items.length) {
+        historyEl.innerHTML = '<div class="empty">История пуста. Отправьте первый запрос.</div>';
+        return;
+      }
+      items.slice().reverse().forEach(({ prompt, response, id }) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = `#${id ?? '—'}`;
+
+        const promptEl = document.createElement('p');
+        promptEl.className = 'prompt';
+        promptEl.textContent = prompt;
+
+        const responseEl = document.createElement('p');
+        responseEl.className = 'response';
+        responseEl.textContent = response;
+
+        card.appendChild(label);
+        card.appendChild(promptEl);
+        card.appendChild(responseEl);
+        historyEl.appendChild(card);
+      });
+    };
+
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error('History failed');
+        const data = await res.json();
+        renderHistory(data);
+        updateStatus(true);
+      } catch (e) {
+        console.error(e);
+        renderHistory([]);
+        updateStatus(false);
+      }
+    };
+
+    const sendPrompt = async () => {
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+      setLoading(true);
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        answerBox.textContent = data.answer || 'Пустой ответ';
+        await fetchHistory();
+      } catch (e) {
+        console.error(e);
+        answerBox.textContent = 'Не удалось получить ответ. Проверьте, что backend запущен и разрешён CORS.';
+        updateStatus(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Initial load
+    fetchHistory();
+
+    sendBtn.addEventListener('click', sendPrompt);
+    clearBtn.addEventListener('click', () => {
+      promptInput.value = '';
+      promptInput.focus();
+    });
+    refreshBtn.addEventListener('click', fetchHistory);
+    pingBtn.addEventListener('click', fetchHistory);
+    promptInput.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        sendPrompt();
+      }
+    });
+  </script>
+</body>
+
+</html>
